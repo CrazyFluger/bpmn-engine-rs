@@ -39,6 +39,8 @@ pub enum HandleError {
     NotImplemented,
     /// Ошибка хранилища
     StoreError(String),
+    /// Нет истинных условий и нет default flow
+    NoConditionMet(String),
 }
 
 impl std::fmt::Display for HandleError {
@@ -61,6 +63,9 @@ impl std::fmt::Display for HandleError {
             }
             HandleError::StoreError(msg) => {
                 write!(f, "StateStore error: {}", msg)
+            }
+            HandleError::NoConditionMet(node_id) => {
+                write!(f, "No condition met for gateway \"{}\" and no default flow", node_id)
             }
         }
     }

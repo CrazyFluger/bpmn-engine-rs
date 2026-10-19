@@ -128,7 +128,7 @@ Currently implemented handlers:
 - ✅ `start_event` — handles StartEvent nodes
 - ✅ `end_event` — handles EndEvent nodes with process completion
 - ✅ `task` — handles Task nodes
-- ⏳ `exclusive_gateway` — planned: exclusive decision points
+- ✅ `exclusive_gateway` — handles ExclusiveGateway nodes with conditional routing and default flow fallback
 - ⏳ `parallel_gateway` — planned: parallel execution paths
 - ⏳ `inclusive_gateway` — planned: inclusive decision points
 
