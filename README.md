@@ -95,8 +95,19 @@ src/
 │   ├── mapper.rs        # XML → Domain mapping
 │   └── validator.rs     # Process validation
 ├── engine/              # Execution engine
+│   ├── handlers/        # Node execution handlers (modular structure)
+│   │   ├── mod.rs       # HandleError enum and common types
+│   │   ├── start_event.rs
+│   │   ├── end_event.rs
+│   │   ├── task.rs
+│   │   ├── exclusive_gateway.rs
+│   │   ├── parallel_gateway.rs
+│   │   ├── inclusive_gateway.rs
+│   │   ├── intermediate_event.rs
+│   │   ├── service_task.rs
+│   │   ├── user_task.rs
+│   │   └── sub_process.rs
 │   ├── instance.rs      # ProcessInstance, event loop
-│   ├── handlers.rs      # Node execution handlers
 │   └── executor.rs      # Engine::start(), instance spawning
 ├── store/               # Persistence layer
 │   ├── store_trait.rs   # StateStore trait
@@ -105,6 +116,21 @@ src/
 └── timer/               # Timer service
     └── service.rs       # Timer polling
 ```
+
+### Handler Module Structure
+
+Each handler is implemented in a separate module with integrated unit tests:
+- **Modular design** — handlers are split into individual files for better organization
+- **Unit tests included** — each handler module contains its own tests
+- **Error handling** — all handlers return `Result<(), HandleError>` with consistent error types
+
+Currently implemented handlers:
+- ✅ `start_event` — handles StartEvent nodes
+- ✅ `end_event` — handles EndEvent nodes with process completion
+- ✅ `task` — handles Task nodes
+- ⏳ `exclusive_gateway` — planned: exclusive decision points
+- ⏳ `parallel_gateway` — planned: parallel execution paths
+- ⏳ `inclusive_gateway` — planned: inclusive decision points
 
 ### Key Concepts
 
