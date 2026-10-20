@@ -1,10 +1,8 @@
-use std::collections::HashMap;
-
 use crate::domain::elements::FlowNode;
-use crate::domain::expression::Expression;
 use crate::engine::handlers::HandleError;
 use crate::engine::instance::ProcessEvent;
 use crate::engine::instance::ProcessInstance;
+
 
 pub async fn handle_exclusive_gateway(
     instance: &mut ProcessInstance,
@@ -23,28 +21,39 @@ pub async fn handle_exclusive_gateway(
 
     // 3. Для каждого flow:
     // - Если есть condition:
-    //     - Проверить условие (пока просто: condition == "true")
+    //     - Проверить условие с помощью Expression::evaluate()
     //     - Если истинно — выбрать этот flow, прекратить поиск
-    let condition_flow = outgoing_flows
-        .iter()
-        .copied()
-        .find(|flow| match &flow.condition {
-            Some(condition) => evaluate_condition(condition, &instance.state.variables),
-            None => false,
-        });
+    let mut condition_flow = None;
+
+    for flow in &outgoing_flows {
+        if let Some(condition) = &flow.condition {
+            match condition.evaluate(&instance.state.variables) {
+                Ok(true) => {
+                    condition_flow = Some(flow);
+                    break;  // Нашли истинное условие, выходим
+                }
+                Ok(false) => continue,  // Условие ложно, идём дальше
+                Err(e) => return Err(HandleError::ExpressionError(e.to_string())),  // Ошибка оценки
+            }
+        }
+    }
 
     // Находим default_flow
     let default_flow = match instance.definition.flow_nodes.get(node_id) {
-        Some(FlowNode::ExclusiveGateway(node)) => node.default_flow.as_ref()
-            .and_then(|default_id| outgoing_flows.iter().find(|flow| flow.id == *default_id))
-            .copied(),
+        Some(FlowNode::ExclusiveGateway(node)) => {
+            if let Some(default_id) = &node.default_flow {
+                outgoing_flows.iter().copied().find(|flow| &flow.id == default_id)
+            } else {
+                None
+            }
+        },
         _ => None,
     };
 
     // 4. Определяем исходящий flow
     let outgoing_flow = condition_flow
         // - Если ни одно условие не истинно, то берём default_flow
-        .or(default_flow)
+        .or(default_flow.as_ref())
         // - Если нет default_flow — вернуть ошибку HandleError::NoConditionMet
         .ok_or_else(|| HandleError::NoConditionMet(node_id.to_string()))?;
 
@@ -66,27 +75,18 @@ pub async fn handle_exclusive_gateway(
     Ok(())
 }
 
-fn evaluate_condition(
-    condition: &Expression,
-    _variables: &HashMap<String, serde_json::Value>,
-) -> bool {
-    // Упрощённая версия: просто проверить строку
-    match condition {
-        Expression::Simple(s) => s == "true",
-    }
-}
-
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use std::collections::HashMap;
+    use uuid::Uuid;
     use crate::domain::elements::{EndEvent, ExclusiveGateway, FlowNode, StartEvent};
+    use crate::domain::expression::Expression;
     use crate::domain::process::{ProcessDefinition, SequenceFlow};
     use crate::domain::state::{InstanceState, Token};
     use crate::engine::instance::ProcessInstance;
     use crate::store::memory::InMemoryStore;
-    use std::collections::HashMap;
-    use uuid::Uuid;
-
+    use super::*;
+    
     fn create_test_process_definition(
         nodes: Vec<FlowNode>,
         sequence_flows: Vec<SequenceFlow>,

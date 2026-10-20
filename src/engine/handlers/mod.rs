@@ -41,6 +41,8 @@ pub enum HandleError {
     StoreError(String),
     /// Нет истинных условий и нет default flow
     NoConditionMet(String),
+    /// Ошибка обработки условия
+    ExpressionError(String),
 }
 
 impl std::fmt::Display for HandleError {
@@ -66,6 +68,9 @@ impl std::fmt::Display for HandleError {
             }
             HandleError::NoConditionMet(node_id) => {
                 write!(f, "No condition met for gateway \"{}\" and no default flow", node_id)
+            }
+            HandleError::ExpressionError(msg) => {
+                write!(f, "Expression error: {}", msg)
             }
         }
     }

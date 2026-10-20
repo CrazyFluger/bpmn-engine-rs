@@ -24,6 +24,7 @@ A BPMN 2.0 process engine implementation in Rust, built as a learning project to
   - Event loop with token-based execution
   - State persistence after each transition
   - Support for multiple concurrent instances
+  - Expression evaluation with `evalexpr` library (comparisons, logical operators, arithmetic, variables)
 
 - **Persistence** — Trait-based abstraction:
   - `StateStore` trait for testability
@@ -132,6 +133,28 @@ Currently implemented handlers:
 - ⏳ `parallel_gateway` — planned: parallel execution paths
 - ⏳ `inclusive_gateway` — planned: inclusive decision points
 
+### Expression Engine
+
+The engine supports BPMN 2.0 condition expressions using the `evalexpr` library. Expressions can reference process variables and use:
+
+**Supported operations:**
+- Comparisons: `==`, `!=`, `<`, `>`, `<=`, `>=`
+- Logical operators: `&&` (and), `||` (or), `!` (not)
+- Arithmetic: `+`, `-`, `*`, `/`, `%`
+- Variable access from process state
+
+**Example expressions:**
+```
+amount > 1000
+status == "approved"
+amount > 1000 && status == "approved"
+!(status == "rejected")
+amount * 2 == 2000
+(a > 0 && b < 10) || c == true
+```
+
+Variables are automatically converted from `serde_json::Value` to `evalexpr::Value`, supporting numbers, strings, booleans, and arrays. Nested objects are converted to their string representation (full nested object support is planned for future versions).
+
 ### Key Concepts
 
 - **Token-based execution** — Tokens flow through the process graph, activating nodes
@@ -149,7 +172,6 @@ Currently implemented handlers:
 - [ ] UserTask with wait/complete semantics
 - [ ] Compensation and transaction handling
 - [ ] Pools and lanes (collaboration diagrams)
-- [ ] Expression language for conditions
 - [ ] Process instance migration between versions
 - [ ] REST API for process management
 - [ ] Web-based process monitoring UI
