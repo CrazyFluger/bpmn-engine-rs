@@ -1,4 +1,5 @@
 use crate::domain::elements::FlowNode;
+use crate::engine::expression_evaluator::ExpressionEvaluator;
 use crate::engine::handlers::HandleError;
 use crate::engine::instance::ProcessEvent;
 use crate::engine::instance::ProcessInstance;
@@ -19,21 +20,23 @@ pub async fn handle_exclusive_gateway(
         .filter(|flow| flow.source_ref == node_id)
         .collect();
 
-    // 3. Для каждого flow:
-    // - Если есть condition:
-    //     - Проверить условие с помощью Expression::evaluate()
-    //     - Если истинно — выбрать этот flow, прекратить поиск
     let mut condition_flow = None;
 
+    // 3. Для каждого flow:
     for flow in &outgoing_flows {
-        if let Some(condition) = &flow.condition {
-            match condition.evaluate(&instance.state.variables) {
+        // Если есть condition:
+        if let Some(expression) = &flow.condition {
+            // Проверить условие с помощью ExpressionEvaluator::evaluate()
+            match ExpressionEvaluator::evaluate(&expression, &instance.state.variables) {
+                // Если истинно — выбрать этот flow, прекратить поиск
                 Ok(true) => {
                     condition_flow = Some(flow);
-                    break;  // Нашли истинное условие, выходим
+                    break;
                 }
-                Ok(false) => continue,  // Условие ложно, идём дальше
-                Err(e) => return Err(HandleError::ExpressionError(e.to_string())),  // Ошибка оценки
+                // Условие ложно, идём дальше
+                Ok(false) => continue,
+                // Ошибка оценки
+                Err(e) => return Err(HandleError::ExpressionError(e.to_string())),
             }
         }
     }
@@ -81,7 +84,7 @@ mod tests {
     use uuid::Uuid;
     use crate::domain::elements::{EndEvent, ExclusiveGateway, FlowNode, StartEvent};
     use crate::domain::expression::Expression;
-    use crate::domain::process::{ProcessDefinition, SequenceFlow};
+use crate::domain::process::{ProcessDefinition, SequenceFlow};
     use crate::domain::state::{InstanceState, Token};
     use crate::engine::instance::ProcessInstance;
     use crate::store::memory::InMemoryStore;

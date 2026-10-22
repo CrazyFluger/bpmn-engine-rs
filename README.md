@@ -89,7 +89,7 @@ src/
 ├── domain/              # BPMN domain model
 │   ├── elements.rs      # FlowNode types (events, tasks, gateways)
 │   ├── process.rs       # ProcessDefinition, SequenceFlow
-│   ├── expression.rs    # Condition expressions
+│   ├── expression.rs    # Condition expressions (data structures only)
 │   └── state.rs         # InstanceState, Token
 ├── parser/              # BPMN XML parsing
 │   ├── xml_types.rs     # XML deserialization types
@@ -109,6 +109,7 @@ src/
 │   │   ├── user_task.rs
 │   │   └── sub_process.rs
 │   ├── instance.rs      # ProcessInstance, event loop
+│   ├── expression_evaluator.rs  # Expression evaluation logic
 │   └── executor.rs      # Engine::start(), instance spawning
 ├── store/               # Persistence layer
 │   ├── store_trait.rs   # StateStore trait
