@@ -1,7 +1,6 @@
 use crate::domain::elements::FlowNode;
 use crate::engine::expression_evaluator::ExpressionEvaluator;
 use crate::engine::handlers::HandleError;
-use crate::engine::instance::ProcessEvent;
 use crate::engine::instance::ProcessInstance;
 
 
@@ -58,17 +57,7 @@ pub async fn handle_exclusive_gateway(
     let target_id = outgoing_flow.target_ref.clone();
 
     // 5. Добавить токен на target выбранного flow
-    instance.add_token(&target_id);
-
-    // 6. Отправить TokenArrived событие
-    instance
-        .event_tx
-        .send(ProcessEvent::TokenArrived {
-            node_id: target_id.clone(),
-        })
-        .await
-        // Отлавливаем ошибку, если канал закрыт
-        .map_err(|_| HandleError::ChannelClosed)?;
+    instance.add_token(&target_id).await?;
 
     Ok(())
 }
@@ -81,6 +70,7 @@ mod tests {
     use crate::domain::process::SequenceFlow;
     use crate::engine::handlers::test_utils::create_test_process_definition;
     use crate::engine::handlers::test_utils::create_test_process_instance;
+use crate::engine::instance::ProcessEvent;
     
 
     // Тест с истинным условием — одно условие "true", проверить, что токен пошёл по этому пути

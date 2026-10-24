@@ -1,9 +1,12 @@
 use crate::{
     engine::handlers::HandleError,
-    engine::instance::{ProcessEvent, ProcessInstance},
+    engine::instance::ProcessInstance,
 };
 
-pub async fn handle_task(instance: &mut ProcessInstance, node_id: &str) -> Result<(), HandleError> {
+pub async fn handle_task(
+    instance: &mut ProcessInstance,
+    node_id: &str,
+) -> Result<(), HandleError> {
     // 1. Удалить токен с текущего узла (Task)
     instance.remove_token(node_id);
 
@@ -24,15 +27,7 @@ pub async fn handle_task(instance: &mut ProcessInstance, node_id: &str) -> Resul
     // 4. Переместить токен на следующий узел
     let flow = &outgoing_flows[0];
     let target_id = flow.target_ref.clone();
-    instance.add_token(&target_id);
-
-    // 5. Отправить событие TokenArrived { node_id: target } через event_tx
-    instance
-        .event_tx
-        .send(ProcessEvent::TokenArrived { node_id: target_id.clone() })
-        .await
-        // Обработать ошибку, если нет исходящего flow или канал закрыт
-        .map_err(|_| HandleError::ChannelClosed)?;
+    instance.add_token(&target_id).await?;
 
     Ok(())
 }
@@ -44,6 +39,7 @@ mod tests {
     use crate::domain::process::SequenceFlow;
     use crate::engine::handlers::test_utils::create_test_process_definition;
     use crate::engine::handlers::test_utils::create_test_process_instance;
+use crate::engine::instance::ProcessEvent;
 
 
     #[tokio::test]

@@ -142,10 +142,18 @@ impl ProcessInstance {
     }
 
     /// Добавить токен на узел
-    pub fn add_token(&mut self, node_id: &str) {
-        self.state.current_tokens.push(Token {
-            node_id: node_id.to_string()
-        });
+    pub async fn add_token(&mut self, node_id: &str) -> Result<(), HandleError> {
+        // Добавляем токен в список
+        self.state.current_tokens.push(Token { node_id: node_id.to_string() });
+        // Вызываем событие ProcessEvent::TokenArrived
+        self.event_tx
+            .send(ProcessEvent::TokenArrived { 
+                node_id: node_id.to_string() 
+            })
+            .await
+            // Отлавливаем ошибку, если канал закрыт
+            .map_err(|_| HandleError::ChannelClosed)?;
+        Ok(())
     }
 
     /// Удалить токен с узла

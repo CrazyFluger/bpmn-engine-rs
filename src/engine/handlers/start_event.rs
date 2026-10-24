@@ -1,7 +1,5 @@
-use crate::{
-    engine::handlers::HandleError,
-    engine::instance::{ProcessEvent, ProcessInstance},
-};
+use crate::engine::handlers::HandleError;
+use crate::engine::instance::ProcessInstance;
 
 pub async fn handle_start_event(
     instance: &mut ProcessInstance,
@@ -18,15 +16,7 @@ pub async fn handle_start_event(
 
     // 3. Добавляем токен на следующий узел
     let target_id = outgoing_flow.target_ref.clone();
-    instance.add_token(&target_id);
-
-    // 4. Отправляем событие TokenArrived для следующего узла
-    instance
-        .event_tx
-        .send(ProcessEvent::TokenArrived { node_id: target_id })
-        .await
-        // Отлавливаем ошибку, если канал закрыт
-        .map_err(|_| HandleError::ChannelClosed)?;
+    instance.add_token(&target_id).await?;
 
     Ok(())
 }
@@ -38,6 +28,7 @@ mod tests {
     use crate::domain::process::SequenceFlow;
     use crate::engine::handlers::test_utils::create_test_process_definition;
     use crate::engine::handlers::test_utils::create_test_process_instance;
+use crate::engine::instance::ProcessEvent;
 
     
     #[tokio::test]

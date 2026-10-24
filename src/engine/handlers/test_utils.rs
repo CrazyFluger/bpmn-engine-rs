@@ -5,7 +5,7 @@ use uuid::Uuid;
 use crate::domain::elements::FlowNode;
 use crate::domain::process::{ProcessDefinition, SequenceFlow};
 use crate::domain::state::{InstanceState, Token};
-use crate::engine::instance::{self, ProcessEvent, ProcessInstance};
+use crate::engine::instance::{ProcessEvent, ProcessInstance};
 use crate::store::memory::InMemoryStore;
 
 pub fn create_test_process_definition(
