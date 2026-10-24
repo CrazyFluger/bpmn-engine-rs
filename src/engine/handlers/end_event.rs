@@ -65,7 +65,8 @@ mod tests {
                 condition: None,
             },
         ];
-        let mut instance = create_test_process_instance(create_test_process_definition(nodes, flows), "end1");
+        let current_tokens = Some(vec!["end1"]);
+        let mut instance = create_test_process_instance(create_test_process_definition(nodes, flows), current_tokens);
 
         // Вызвать handle_end_event
         let result = handle_end_event(&mut instance, "end1").await;
@@ -102,7 +103,8 @@ mod tests {
                 condition: None,
             },
         ];
-        let mut instance = create_test_process_instance(create_test_process_definition(nodes, flows), "end1");
+        let current_tokens = Some(vec!["end1"]);
+        let mut instance = create_test_process_instance(create_test_process_definition(nodes, flows), current_tokens);
 
         // Вызвать handle_end_event
         let result = handle_end_event(&mut instance, "end1").await;

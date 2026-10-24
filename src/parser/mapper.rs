@@ -172,8 +172,8 @@ impl BpmnParser {
     fn map_parallel_gateway(event: &BpmnParallelGateway) -> FlowNode {
         FlowNode::ParallelGateway(ParallelGateway {
             id: event.id.clone(),
-            incoming: event.incoming.clone(),
-            outgoing: event.outgoing.clone(),
+            // incoming: event.incoming.clone(),
+            // outgoing: event.outgoing.clone(),
         })
     }
 

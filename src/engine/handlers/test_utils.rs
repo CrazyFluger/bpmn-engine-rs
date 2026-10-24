@@ -41,13 +41,15 @@ pub fn create_test_process_definition(
 
 pub fn create_test_process_instance(
     definition: ProcessDefinition,
-    start_node_id: &str,
+    current_tokens: Option<Vec<&str>>,
 ) -> ProcessInstance {
     let store = Box::new(InMemoryStore::new());
+    let current_tokens: Vec<Token> = current_tokens.map_or(
+        vec![],
+        |nodes| nodes.iter().map(|node_id| Token { node_id: node_id.to_string() }).collect(),
+    );
     let state = InstanceState {
-        current_tokens: vec![Token {
-            node_id: start_node_id.to_string(),
-        }],
+        current_tokens,
         variables: HashMap::new(),
     };
 

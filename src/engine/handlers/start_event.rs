@@ -54,7 +54,8 @@ mod tests {
                 condition: None,
             },
         ];
-        let mut instance = create_test_process_instance(create_test_process_definition(nodes, flows), "start1");
+        let current_tokens = Some(vec!["start1"]);
+        let mut instance = create_test_process_instance(create_test_process_definition(nodes, flows), current_tokens);
 
         // Вызвать handle_start_event
         let result = handle_start_event(&mut instance, "start1").await;
@@ -82,10 +83,9 @@ mod tests {
         let nodes = vec![
             FlowNode::StartEvent(StartEvent { id: "start1".to_string() }),
         ];
-
         let flows = vec![];
-
-        let mut instance = create_test_process_instance(create_test_process_definition(nodes, flows), "start1");
+        let current_tokens = Some(vec!["start1"]);
+        let mut instance = create_test_process_instance(create_test_process_definition(nodes, flows), current_tokens);
 
         // Вызвать handle_start_event
         let result = handle_start_event(&mut instance, "start1").await;

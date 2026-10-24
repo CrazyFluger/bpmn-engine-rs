@@ -60,7 +60,8 @@ mod tests {
                 condition: None,
             },
         ];
-        let mut instance = create_test_process_instance(create_test_process_definition(nodes, flows), "task1");
+        let current_tokens = Some(vec!["task1"]);
+        let mut instance = create_test_process_instance(create_test_process_definition(nodes, flows), current_tokens);
 
         // Вызвать handle_task
         let result = handle_task(&mut instance, "task1").await;
@@ -91,7 +92,8 @@ mod tests {
             FlowNode::Task(Task { id: "task1".to_string(), name: None }),
         ];
         let flows = vec![];
-        let mut instance = create_test_process_instance(create_test_process_definition(nodes, flows), "task1");
+        let current_tokens = Some(vec!["task1"]);
+        let mut instance = create_test_process_instance(create_test_process_definition(nodes, flows), current_tokens);
 
         // Вызвать handle_task
         let result = handle_task(&mut instance, "task1").await;
@@ -121,7 +123,8 @@ mod tests {
                 condition: None,
             },
         ];
-        let mut instance = create_test_process_instance(create_test_process_definition(nodes, flows), "task1");
+        let current_tokens = Some(vec!["task1"]);
+        let mut instance = create_test_process_instance(create_test_process_definition(nodes, flows), current_tokens);
 
         // Вызвать handle_task
         let result = handle_task(&mut instance, "task1").await;

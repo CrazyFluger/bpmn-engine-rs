@@ -74,8 +74,8 @@ pub struct InclusiveGateway {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ParallelGateway {
     pub id: String,
-    pub incoming: Vec<String>,
-    pub outgoing: Vec<String>,
+    // pub incoming: Vec<String>,
+    // pub outgoing: Vec<String>,
 }
 
 /// Узел (BPMN Node / Flow Object)
@@ -150,7 +150,7 @@ mod tests {
         let n = FlowNode::ExclusiveGateway(ExclusiveGateway { id: id.clone(), default_flow: None });
         assert_eq!(n.id(), id);
         let id = "parallel gateway".to_string();
-        let n = FlowNode::ParallelGateway(ParallelGateway { id: id.clone(), incoming: vec![], outgoing: vec![] });
+        let n = FlowNode::ParallelGateway(ParallelGateway { id: id.clone()/*, incoming: vec![], outgoing: vec![]*/});
         assert_eq!(n.id(), id);
         let id = "inclusive gateway".to_string();
         let n = FlowNode::InclusiveGateway(InclusiveGateway { id: id.clone(), default_flow: None });

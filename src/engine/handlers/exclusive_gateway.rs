@@ -98,7 +98,8 @@ mod tests {
                 condition: Some(Expression::Simple("true".to_string())),
             },
         ];
-        let mut instance = create_test_process_instance(create_test_process_definition(nodes, flows), "exclusive_gateway");
+        let current_tokens = Some(vec!["exclusive_gateway"]);
+        let mut instance = create_test_process_instance(create_test_process_definition(nodes, flows), current_tokens);
 
         let result = handle_exclusive_gateway(&mut instance, "exclusive_gateway").await;
 
@@ -143,7 +144,8 @@ mod tests {
                 condition: Some(Expression::Simple("false".to_string())),
             }
         ];
-        let mut instance = create_test_process_instance(create_test_process_definition(nodes, flows), "exclusive_gateway");
+        let current_tokens = Some(vec!["exclusive_gateway"]);
+        let mut instance = create_test_process_instance(create_test_process_definition(nodes, flows), current_tokens);
 
         let result = handle_exclusive_gateway(&mut instance, "exclusive_gateway").await;
 
@@ -194,7 +196,8 @@ mod tests {
                 condition: None,
             },
         ];
-        let mut instance = create_test_process_instance(create_test_process_definition(nodes, flows), "exclusive_gateway");
+        let current_tokens = Some(vec!["exclusive_gateway"]);
+        let mut instance = create_test_process_instance(create_test_process_definition(nodes, flows), current_tokens);
 
         let result = handle_exclusive_gateway(&mut instance, "exclusive_gateway").await;
 
@@ -238,7 +241,8 @@ mod tests {
                 condition: Some(Expression::Simple("false".to_string())),
             },
         ];
-        let mut instance = create_test_process_instance(create_test_process_definition(nodes, flows), "exclusive_gateway");
+        let current_tokens = Some(vec!["exclusive_gateway"]);
+        let mut instance = create_test_process_instance(create_test_process_definition(nodes, flows), current_tokens);
 
         let result = handle_exclusive_gateway(&mut instance, "exclusive_gateway").await;
 
