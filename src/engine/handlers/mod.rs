@@ -46,6 +46,8 @@ pub enum HandleError {
     NoConditionMet(String),
     /// Ошибка обработки условия
     ExpressionError(String),
+    /// Слишком много токенов у ParallelGateway
+    TooMuchParallelGatewayTokens(usize, usize),
 }
 
 impl std::fmt::Display for HandleError {
@@ -74,6 +76,9 @@ impl std::fmt::Display for HandleError {
             }
             HandleError::ExpressionError(msg) => {
                 write!(f, "Expression error: {}", msg)
+            }
+            HandleError::TooMuchParallelGatewayTokens(expected, arrived) => {
+                write!(f, "ParallelGateway expected {} tokens, but arrived {}", expected, arrived)
             }
         }
     }

@@ -7,27 +7,51 @@ pub async fn handle_parallel_gateway(
     node_id: &str,
 ) -> Result<(), HandleError> {
     // 1. Подсчитать количество входящих flows (incoming_count)
-    let incoming_flows = instance.definition.get_incoming_flows_for(node_id).len();
+    let incoming_flows_count = instance.definition.get_incoming_flows_for(node_id).len();
 
     // 2. Подсчитать текущие токены на gateway (tokens_at_gateway)
     // (включая только что прибывший)
-    let incoming_tokens = instance.count_tokens_for(node_id);
+    let gateway_tokens_count = instance.count_tokens_for(node_id);
 
     // 3. Если tokens_at_gateway < incoming_count:
-    // → Это JOIN, но ещё не все токены пришли
-    // → Просто выйти (токен уже добавлен вызывающим кодом)
-    // → Ждать следующих событий
+    //  - Это JOIN, но ещё не все токены пришли
+    //  - Просто выйти (токен уже добавлен вызывающим кодом)
+    //  - Ждать следующих событий
+    if gateway_tokens_count < incoming_flows_count  {
+        return Ok(())
+    }
+    // 4. Если tokens_at_gateway == incoming_count:
+    //  - Это JOIN и все токены собрались
+    //  - ИЛИ это FORK (один входящий, несколько исходящих)
+    else if gateway_tokens_count == incoming_flows_count {
+        // → Удалить все токены с gateway
+        instance.remove_token(node_id);
 
-    // 4. Если tokens_at_gateway >= incoming_count:
-    // → Это JOIN и все токены собрались
-    // → ИЛИ это FORK (один входящий, несколько исходящих)
-    
-    // → Удалить все токены с gateway
-    // → Для каждого исходящего flow:
-    //    - Добавить токен на target
-    //    - Отправить TokenArrived событие
+        // → Для каждого исходящего flow:
+        let outgoing_flows_id: Vec<_> = instance
+            .definition
+            .get_outgoing_flows_for(node_id)
+            .iter()
+            .map(|f| f.target_ref.clone())
+            .collect();
 
-    Err(HandleError::NotImplemented)
+        // Если нету исходящих потоков, выкидываем ошибку
+        if outgoing_flows_id.is_empty() {
+            return Err(HandleError::NoOutgoingFlow(node_id.to_string()))
+        }
+
+        for target_id in outgoing_flows_id {
+            //    - Добавить токен на target
+            instance.add_token(&target_id).await?;
+        }            
+
+        return Ok(())
+    }
+    // 4. Если tokens_at_gateway > incoming_count:
+    //  - Это ошибка
+    else {
+        return Err(HandleError::TooMuchParallelGatewayTokens(gateway_tokens_count, incoming_flows_count));
+    }
 }
 
 #[cfg(test)]
@@ -186,8 +210,9 @@ use super::*;
 
         // Токен должен перейти на task3
         assert!(
-            !instance.state.current_tokens.iter().any(|t| t.node_id == "task3"),
-            "It was expected that the token would moved to task3"
+            instance.state.current_tokens.iter().any(|t| t.node_id == "task3"),
+            "It was expected that the token would moved to task3: {:?}",
+            instance.state.current_tokens
         );
 
         // Отправлено событие TokenArrived { node_id: "task3" }
@@ -253,8 +278,9 @@ use super::*;
 
         // Токен должен перейти на task3
         assert!(
-            !instance.state.current_tokens.iter().any(|t| t.node_id == "task3"),
-            "It was expected that the token would moved to task3"
+            instance.state.current_tokens.iter().any(|t| t.node_id == "task3"),
+            "It was expected that the token would moved to task3: {:?}",
+            instance.state.current_tokens
         );
 
         // Отправлено событие TokenArrived { node_id: "task3" }
@@ -328,14 +354,16 @@ use super::*;
 
         // Токен должен перейти на task3
         assert!(
-            !instance.state.current_tokens.iter().any(|t| t.node_id == "task3"),
-            "It was expected that the token would moved to task3"
+            instance.state.current_tokens.iter().any(|t| t.node_id == "task3"),
+            "It was expected that the token would moved to task3: {:?}",
+            instance.state.current_tokens
         );
 
-        // Токен должен перейти на task3
+        // Токен должен перейти на task4
         assert!(
-            !instance.state.current_tokens.iter().any(|t| t.node_id == "task4"),
-            "It was expected that the token would moved to task4"
+            instance.state.current_tokens.iter().any(|t| t.node_id == "task4"),
+            "It was expected that the token would moved to task4: {:?}",
+            instance.state.current_tokens
         );
 
         let mut arrived_tokens = HashSet::new();
@@ -346,6 +374,66 @@ use super::*;
         assert!(arrived_tokens.contains("task3"));
         assert!(arrived_tokens.contains("task4"));
         assert_eq!(arrived_tokens.len(), 2);
+
+    }
+
+    // Тестирует ошибку при превышении количества токенов над входящими потоками
+    #[tokio::test]
+    async fn test_handle_parallel_gateway_too_much_error() {
+        let nodes = vec![
+            FlowNode::ParallelGateway(ParallelGateway { id: "parallel_gateway".to_string() }),
+            FlowNode::Task(Task { id: "task1".to_string(), name: None }),
+            FlowNode::Task(Task { id: "task2".to_string(), name: None }),
+            FlowNode::Task(Task { id: "task3".to_string(), name: None }),
+        ];
+        let flows = vec![
+            SequenceFlow {
+                id: "flow1".to_string(),
+                source_ref: "task1".to_string(),
+                target_ref: "parallel_gateway".to_string(),
+                condition: None,
+            },
+            SequenceFlow {
+                id: "flow2".to_string(),
+                source_ref: "task2".to_string(),
+                target_ref: "parallel_gateway".to_string(),
+                condition: None,
+            },
+            SequenceFlow {
+                id: "flow3".to_string(),
+                source_ref: "parallel_gateway".to_string(),
+                target_ref: "task3".to_string(),
+                condition: None,
+            },
+        ];
+        let current_tokens = Some(vec!["parallel_gateway", "parallel_gateway", "parallel_gateway"]);
+        let mut instance = create_test_process_instance(create_test_process_definition(nodes, flows), current_tokens);
+
+        let result = handle_parallel_gateway(&mut instance, "parallel_gateway").await;
+        assert!(matches!(result, Err(HandleError::TooMuchParallelGatewayTokens(_, _))));
+
+    }
+
+    // Тестирует ошибку при отсутствии исходящих потоков
+    #[tokio::test]
+    async fn test_handle_parallel_gateway_no_outgoing_flows() {
+        let nodes = vec![
+            FlowNode::ParallelGateway(ParallelGateway { id: "parallel_gateway".to_string() }),
+            FlowNode::Task(Task { id: "task1".to_string(), name: None }),
+        ];
+        let flows = vec![
+            SequenceFlow {
+                id: "flow1".to_string(),
+                source_ref: "task1".to_string(),
+                target_ref: "parallel_gateway".to_string(),
+                condition: None,
+            },
+        ];
+        let current_tokens = Some(vec!["parallel_gateway"]);
+        let mut instance = create_test_process_instance(create_test_process_definition(nodes, flows), current_tokens);
+
+        let result = handle_parallel_gateway(&mut instance, "parallel_gateway").await;
+        assert!(matches!(result, Err(HandleError::NoOutgoingFlow(_))));
 
     }
 }
