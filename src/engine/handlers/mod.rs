@@ -12,6 +12,9 @@ mod service_task;
 mod user_task;
 mod sub_process;
 
+#[cfg(test)]
+pub mod test_utils;
+
 pub use start_event::handle_start_event;
 pub use end_event::handle_end_event;
 pub use task::handle_task;

@@ -60,4 +60,28 @@ impl ProcessDefinition {
             start_events,
         }
     }
+
+    /// Получить список исходящих flow для узла
+    pub fn get_outgoing_flows_for(&self, node_id: &str) -> Vec<&SequenceFlow> {
+        self.sequence_flows
+            .iter()
+            .filter(|f| f.source_ref == node_id)
+            .collect()
+    }
+
+    /// Получить исходящий flow для узла
+    pub fn get_outgoing_flow_for(&self, node_id: &str) -> Option<&SequenceFlow> {
+        self.sequence_flows
+            .iter()
+            .find(|f| f.source_ref == node_id)
+    }
+
+    /// Получить список входящих flow для узла
+    pub fn get_incoming_flows_for(&self, node_id: &str) -> Vec<&SequenceFlow> {
+        self.sequence_flows
+            .iter()
+            .filter(|f| f.target_ref == node_id)
+            .collect()
+    }
+
 }

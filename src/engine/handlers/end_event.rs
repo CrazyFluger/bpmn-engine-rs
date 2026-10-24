@@ -44,84 +44,28 @@ pub async fn handle_end_event(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::domain::elements::{EndEvent, FlowNode, StartEvent, Task};
-    use crate::domain::process::{ProcessDefinition, SequenceFlow};
-    use crate::domain::state::{InstanceState, Token};
-    use crate::engine::handlers::handle_node;
-    use crate::engine::instance::ProcessInstance;
-    use crate::store::memory::InMemoryStore;
-    use std::collections::HashMap;
-    use uuid::Uuid;
+    use crate::domain::elements::{EndEvent, FlowNode};
+    use crate::domain::elements::StartEvent;
+    use crate::domain::process::SequenceFlow;
+    use crate::engine::handlers::test_utils::create_test_process_definition;
+    use crate::engine::handlers::test_utils::create_test_process_instance;
 
-    fn create_test_process_definition() -> ProcessDefinition {
-        let mut flow_nodes = HashMap::new();
-        flow_nodes.insert(
-            "start1".to_string(),
-            FlowNode::StartEvent(StartEvent {
-                id: "start1".to_string(),
-            }),
-        );
-        flow_nodes.insert(
-            "task1".to_string(),
-            FlowNode::Task(Task {
-                id: "task1".to_string(),
-                name: None,
-            }),
-        );
-        flow_nodes.insert(
-            "end1".to_string(),
-            FlowNode::EndEvent(EndEvent {
-                id: "end1".to_string(),
-            }),
-        );
 
-        let sequence_flows = vec![
+    #[tokio::test]
+    async fn test_handle_end_event() {
+        let nodes = vec![
+            FlowNode::StartEvent(StartEvent { id: "start1".to_string() }),
+            FlowNode::EndEvent(EndEvent { id: "end1".to_string() }),
+        ];
+        let flows = vec![
             SequenceFlow {
                 id: "flow1".to_string(),
                 source_ref: "start1".to_string(),
-                target_ref: "task1".to_string(),
-                condition: None,
-            },
-            SequenceFlow {
-                id: "flow2".to_string(),
-                source_ref: "task1".to_string(),
                 target_ref: "end1".to_string(),
                 condition: None,
             },
         ];
-
-        ProcessDefinition {
-            id: "test-process".to_string(),
-            version: 1,
-            name: Some("Test Process".to_string()),
-            flow_nodes,
-            sequence_flows,
-            start_events: vec!["start1".to_string()],
-        }
-    }
-
-    fn create_test_process_instance(
-        definition: ProcessDefinition,
-        start_node_id: &str,
-    ) -> ProcessInstance {
-        let store = Box::new(InMemoryStore::new());
-        let state = InstanceState {
-            current_tokens: vec![Token {
-                node_id: start_node_id.to_string(),
-            }],
-            variables: HashMap::new(),
-        };
-
-        ProcessInstance::restore(Uuid::new_v4(), definition, store, state)
-    }
-
-    #[tokio::test]
-    async fn test_handle_end_event() {
-        let mut instance = create_test_process_instance(create_test_process_definition(), "start1");
-
-        // Выполнить процесс до end1
-        let _ = handle_node(&mut instance, "start1").await;
-        let _ = handle_node(&mut instance, "task1").await;
+        let mut instance = create_test_process_instance(create_test_process_definition(nodes, flows), "end1");
 
         // Вызвать handle_end_event
         let result = handle_end_event(&mut instance, "end1").await;
@@ -133,63 +77,32 @@ mod tests {
 
         // Все токены ушли
         assert_eq!(
-            instance.state.current_tokens.len(),
-            0,
-            "Остались токены: {:?}",
-            instance.state.current_tokens
+            instance.state.current_tokens.len(), 0,
+            "Остались токены: {:?}", instance.state.current_tokens
         );
 
         // Отправлено событие Complete
-        // Получаем все события из канала (их будет 3: от start1, task1 и end1)
-        let event1 = instance.event_rx.recv().await.unwrap();
-        let event2 = instance.event_rx.recv().await.unwrap();
-        let event3 = instance.event_rx.recv().await.unwrap();
-        
-        // Первое событие должно быть TokenArrived для task1
-        match event1 {
-            ProcessEvent::TokenArrived { node_id } => {
-                assert_eq!(node_id, "task1");
-            }
-            ProcessEvent::Complete => panic!("Unexpected Complete event"),
-        }
-        
-        // Второе событие должно быть TokenArrived для end1
-        match event2 {
-            ProcessEvent::TokenArrived { node_id } => {
-                assert_eq!(node_id, "end1");
-            }
-            ProcessEvent::Complete => panic!("Unexpected Complete event"),
-        }
+        let event = instance.event_rx.recv().await.unwrap();
         
         // Третье событие должно быть Complete
-        assert!(matches!(event3, ProcessEvent::Complete));
+        assert!(matches!(event, ProcessEvent::Complete));
     }
 
+    /// Финальное событие имеет исходящие потоки - это ошибка
     #[tokio::test]
     async fn test_handle_end_event_has_flow() {
-        let mut flow_nodes = HashMap::new();
-        flow_nodes.insert(
-            "end1".to_string(),
-            FlowNode::EndEvent(EndEvent {
-                id: "end1".to_string(),
-            }),
-        );
-
-        let definition = ProcessDefinition {
-            id: "test-process".to_string(),
-            version: 1,
-            name: Some("Test Process".to_string()),
-            flow_nodes,
-            sequence_flows: vec![SequenceFlow {
-                id: "flow1".to_string(),
+        let nodes = vec![
+            FlowNode::EndEvent(EndEvent { id: "end1".to_string() }),
+        ];
+        let flows = vec![
+            SequenceFlow {
+                id: "flow2".to_string(),
                 source_ref: "end1".to_string(),
                 target_ref: "task1".to_string(),
                 condition: None,
-            }],
-            start_events: vec![],
-        };
-
-        let mut instance = create_test_process_instance(definition, "end1");
+            },
+        ];
+        let mut instance = create_test_process_instance(create_test_process_definition(nodes, flows), "end1");
 
         // Вызвать handle_end_event
         let result = handle_end_event(&mut instance, "end1").await;

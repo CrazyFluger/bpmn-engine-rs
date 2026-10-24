@@ -152,4 +152,13 @@ impl ProcessInstance {
     pub fn remove_token(&mut self, node_id: &str) {
         self.state.current_tokens.retain(|t| t.node_id != node_id);
     }
+
+    /// Кол-во токенов на узле
+    pub fn count_tokens_for(&mut self, node_id: &str) -> usize {
+        self.state.current_tokens
+            .iter()
+            .filter(|t| t.node_id == node_id)
+            .count()
+    }
+
 }
