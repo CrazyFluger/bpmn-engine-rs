@@ -5,7 +5,7 @@ use uuid::Uuid;
 use crate::domain::elements::FlowNode;
 use crate::domain::process::{ProcessDefinition, SequenceFlow};
 use crate::domain::state::{InstanceState, Token};
-use crate::engine::instance::ProcessInstance;
+use crate::engine::instance::{self, ProcessEvent, ProcessInstance};
 use crate::store::memory::InMemoryStore;
 
 pub fn create_test_process_definition(
@@ -54,4 +54,12 @@ pub fn create_test_process_instance(
     };
 
     ProcessInstance::restore(Uuid::new_v4(), definition, store, state)
+}
+
+pub async fn get_arrived_token(instance: &mut ProcessInstance) -> Result<String, String>{
+    let event = instance.event_rx.recv().await.unwrap();
+    match event {
+        ProcessEvent::TokenArrived { node_id } => Ok(node_id),
+        ProcessEvent::Complete => Err("Unexpected Complete event".to_string()),
+    }
 }
