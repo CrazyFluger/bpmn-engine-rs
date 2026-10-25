@@ -40,6 +40,8 @@ A BPMN 2.0 process engine implementation in Rust, built as a learning project to
 
 - Rust 2024 edition
 - PostgreSQL (for production use)
+- Docker & Docker Compose (for local development)
+- sqlx-cli (for database migrations)
 - Tokio runtime for async execution
 
 ## Building
@@ -50,11 +52,26 @@ cargo build
 
 ## Running Tests
 
+### Unit Tests (no database required)
+
 ```bash
-cargo test
+cargo test --lib
 ```
 
-All tests use `InMemoryStore` and don't require PostgreSQL.
+All unit tests use `InMemoryStore` and don't require PostgreSQL.
+
+### Integration Tests (requires PostgreSQL)
+
+```bash
+# Start PostgreSQL via Docker
+docker compose -f docker/compose.yaml up -d
+
+# Set environment variable
+export DATABASE_URL="postgresql://bpmn:bpmn@localhost/bpmn"
+
+# Run integration tests
+cargo test --test postgres_test
+```
 
 ## Usage
 
@@ -72,13 +89,27 @@ cargo run -- start --id process-id
 
 ### Environment Variables
 
-- `DATABASE_URL` — PostgreSQL connection string (default: `postgresql://localhost/bpmn`)
+- `DATABASE_URL` — PostgreSQL connection string (default: `postgresql://bpmn:bpmn@localhost/bpmn`)
 
 ### Database Setup
 
+Start PostgreSQL using Docker Compose:
+
 ```bash
-psql $DATABASE_URL -f src/store/schema.sql
+docker compose -f docker/compose.yaml up -d
 ```
+
+Apply database migrations using sqlx-cli:
+
+```bash
+cargo install sqlx-cli
+sqlx migrate run
+```
+
+The database schema includes:
+- `process_definitions` — BPMN process definitions with JSONB storage
+- `process_instances` — process instances with current state
+- `_sqlx_migrations` — migration tracking table
 
 ## Architecture
 
