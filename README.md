@@ -132,7 +132,7 @@ Currently implemented handlers:
 - ✅ `task` — handles Task nodes
 - ✅ `exclusive_gateway` — handles ExclusiveGateway nodes with conditional routing and default flow fallback
 - ✅ `parallel_gateway` — handles ParallelGateway nodes with fork (split), join (sync), and join+fork semantics; waits for all incoming tokens before activating outgoing flows
-- ⏳ `inclusive_gateway` — planned: inclusive decision points
+- ✅ `inclusive_gateway` — handles InclusiveGateway nodes with fork (one or multiple paths), join (sync), and join+fork semantics; evaluates conditions and activates all matching paths
 
 ### Expression Engine
 

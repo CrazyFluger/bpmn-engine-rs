@@ -28,7 +28,7 @@ mod tests {
     use crate::domain::process::SequenceFlow;
     use crate::engine::handlers::test_utils::create_test_process_definition;
     use crate::engine::handlers::test_utils::create_test_process_instance;
-use crate::engine::instance::ProcessEvent;
+    use crate::engine::instance::ProcessEvent;
 
     
     #[tokio::test]

@@ -37,9 +37,8 @@ mod tests {
     use super::*;
     use crate::domain::elements::{EndEvent, FlowNode, Task};
     use crate::domain::process::SequenceFlow;
-    use crate::engine::handlers::test_utils::create_test_process_definition;
-    use crate::engine::handlers::test_utils::create_test_process_instance;
-use crate::engine::instance::ProcessEvent;
+    use crate::engine::handlers::test_utils::*;
+    use crate::engine::instance::ProcessEvent;
 
 
     #[tokio::test]

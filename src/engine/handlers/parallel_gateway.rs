@@ -50,7 +50,7 @@ pub async fn handle_parallel_gateway(
     // 4. Если tokens_at_gateway > incoming_count:
     //  - Это ошибка
     else {
-        return Err(HandleError::TooMuchParallelGatewayTokens(gateway_tokens_count, incoming_flows_count));
+        return Err(HandleError::TooMuchGatewayTokens(gateway_tokens_count, incoming_flows_count));
     }
 }
 
@@ -58,7 +58,7 @@ pub async fn handle_parallel_gateway(
 mod tests {
     use std::collections::HashSet;
 
-use super::*;
+    use super::*;
     use crate::engine::handlers::test_utils::*;
     use crate::domain::elements::{FlowNode, ParallelGateway, StartEvent, Task};
     use crate::domain::process::SequenceFlow;
@@ -374,7 +374,6 @@ use super::*;
         assert!(arrived_tokens.contains("task3"));
         assert!(arrived_tokens.contains("task4"));
         assert_eq!(arrived_tokens.len(), 2);
-
     }
 
     // Тестирует ошибку при превышении количества токенов над входящими потоками
@@ -410,7 +409,7 @@ use super::*;
         let mut instance = create_test_process_instance(create_test_process_definition(nodes, flows), current_tokens);
 
         let result = handle_parallel_gateway(&mut instance, "parallel_gateway").await;
-        assert!(matches!(result, Err(HandleError::TooMuchParallelGatewayTokens(_, _))));
+        assert!(matches!(result, Err(HandleError::TooMuchGatewayTokens(_, _))));
 
     }
 
