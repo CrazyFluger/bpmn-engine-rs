@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use tokio::sync::mpsc;
 use uuid::Uuid;
 
@@ -24,6 +22,7 @@ impl std::fmt::Display for ProcessError {
     }
 }
 
+#[derive(Debug)]
 pub enum ProcessEvent {
     /// Доставка токена на узел
     TokenArrived { node_id: String },
@@ -48,22 +47,10 @@ impl ProcessInstance {
     pub fn new(
         id: Uuid,
         definition: ProcessDefinition,
+        state: InstanceState,
         store: Box<dyn StateStore>,
     ) -> Result<Self, ProcessError> {
         let (tx, rx) = mpsc::channel(100);
-
-        // TODO: Стартовых событий может быть несколько и каждое из них является тригером по спецификации BPMN 2.0
-        let state = if let Some(start_event_id) = definition.start_events.first() {
-                InstanceState {
-                    current_tokens: vec![
-                        Token { node_id: start_event_id.clone() }
-                    ],
-                    variables: HashMap::new(),
-                }
-            } else {
-                return Err(ProcessError::HasNoStartingEvents);
-            };
-
         Ok(Self {
             id,
             definition,
@@ -140,6 +127,15 @@ impl ProcessInstance {
         
         Ok(())
     }
+
+    /// Расставить токены на все стартовые события
+    pub async fn init_start_tokens(&mut self) -> Result<(), HandleError> {
+        for node_id in self.definition.start_events.clone() {
+            self.add_token(&node_id).await?;
+        }
+        Ok(())
+    }
+
 
     /// Добавить токен на узел
     pub async fn add_token(&mut self, node_id: &str) -> Result<(), HandleError> {

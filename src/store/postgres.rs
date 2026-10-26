@@ -12,6 +12,7 @@ use crate::domain::process::ProcessDefinition;
 use crate::domain::state::{InstanceState, Token};
 use crate::store::StateStore;
 
+
 pub struct PostgresStore {
     pool: PgPool,
 }
@@ -131,7 +132,7 @@ impl StateStore for PostgresStore {
     }
 
     async fn load_instance(&self, id: Uuid) -> anyhow::Result<(String, u32, InstanceState)> {
-        let row: (String, i32, Json<Vec<Token>>, Json<HashMap<String, Value>>) = sqlx::query_as(
+        let (definition_id, definition_version, current_tokens, variables) = sqlx::query_as::<_, (String, i32, Json<Vec<Token>>, Json<HashMap<String, Value>>)>(
                 "SELECT definition_id, definition_version, current_tokens, variables 
                 FROM process_instances 
                 WHERE id = $1"
@@ -143,13 +144,39 @@ impl StateStore for PostgresStore {
                 sqlx::Error::RowNotFound => anyhow!("Instance '{}' not found", id),
                 _ => e.into(),
             })?;
-
-        let current_tokens = row.2.0;
-        let variables = row.3.0;
+        let state = InstanceState { 
+                current_tokens: current_tokens.0,
+                variables: variables.0,
+            };
         
-        Ok((row.0, row.1 as u32, InstanceState { 
-            current_tokens, 
-            variables 
-        }))
+        Ok((
+            definition_id,
+            definition_version as u32,
+            state,
+        ))
+    }
+
+    async fn load_running_instances(&self) -> anyhow::Result<Vec<(Uuid, String, u32, InstanceState)>> {
+        let records = sqlx::query_as::<_, (Uuid, String, i32, Json<Vec<Token>>, Json<HashMap<String, Value>>)>(
+                "SELECT id, definition_id, definition_version, current_tokens, variables 
+                FROM process_instances 
+                WHERE status = $1"
+            )
+            .bind("running".to_string())
+            .fetch_all(&self.pool)
+            .await?;
+
+        Ok(records
+            .iter()
+            .map(|(id, definition_id, definition_version, current_tokens, variables)| (
+                id.clone(),
+                definition_id.clone(),
+                *definition_version as u32,
+                InstanceState { 
+                    current_tokens: current_tokens.0.clone(),
+                    variables: variables.0.clone(),
+                }
+            ))
+            .collect())
     }
 }

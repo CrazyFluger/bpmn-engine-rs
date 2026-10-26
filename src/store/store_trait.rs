@@ -6,6 +6,7 @@ use anyhow::Result;
 use async_trait::async_trait;
 use uuid::Uuid;
 
+
 #[async_trait]
 pub trait StateStore: Send + Sync {
     // Работа с определениями процессов
@@ -17,6 +18,7 @@ pub trait StateStore: Send + Sync {
     async fn create_instance(&self, id: Uuid, definition_id: &str, definition_version: u32, state: &InstanceState) -> Result<()>;
     async fn update_instance_state(&self, id: Uuid, state: &InstanceState) -> Result<()>;
     async fn load_instance(&self, id: Uuid) -> Result<(String, u32, InstanceState)>;
+    async fn load_running_instances(&self) -> Result<Vec<(Uuid, String, u32, InstanceState)>>;
 }
 
 pub struct ArcStore(pub Arc<dyn StateStore>);
@@ -45,5 +47,9 @@ impl StateStore for ArcStore {
     
     async fn load_instance(&self, id: Uuid) -> anyhow::Result<(String, u32, InstanceState)> {
         self.0.load_instance(id).await
+    }
+    
+    async fn load_running_instances(&self) -> anyhow::Result<Vec<(Uuid, String, u32, InstanceState)>> {
+        self.0.load_running_instances().await
     }
 }

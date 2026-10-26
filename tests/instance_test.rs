@@ -1,5 +1,6 @@
 use std::{collections::HashMap, sync::Arc};
 
+use bpmn_engine_rs::domain::state::InstanceState;
 use bpmn_engine_rs::store::store_trait::StateStore;
 use bpmn_engine_rs::{
     domain::{
@@ -89,10 +90,17 @@ fn create_process_instance(
     definition: ProcessDefinition,
     store: Arc<InMemoryStore>,
 ) -> Result<ProcessInstance, ProcessError> {
+    let id = Uuid::new_v4();
+    let state = InstanceState {
+        current_tokens: vec![],
+        variables: HashMap::new(),
+    };
+    let store = Box::new(ArcStore(store));
     let process = ProcessInstance::new(
-        Uuid::new_v4(),
+        id,
         definition.clone(),
-        Box::new(ArcStore(store)),
+        state,
+        store,
     )?;
 
     Ok(process)
